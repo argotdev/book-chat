@@ -1,23 +1,30 @@
-import { StreamChat } from 'stream-chat'
-
-const serverClient = StreamChat.getInstance(
-  process.env.NEXT_PUBLIC_STREAM_API_KEY,
-  process.env.STREAM_API_SECRET
-)
+import { NextResponse } from 'next/server';
+import { StreamChat } from 'stream-chat';
 
 export async function POST(req) {
   try {
-    const { userId } = await req.json()
+    const { userId } = await req.json();
     
-    if (!userId) {
-      return Response.json({ error: 'User ID is required' }, { status: 400 })
-    }
+    const serverClient = StreamChat.getInstance(
+      process.env.NEXT_PUBLIC_STREAM_API_KEY,
+      process.env.STREAM_API_SECRET
+    );
 
-    const token = serverClient.createToken(userId)
-    return Response.json({ token })
-    
+    // First, upsert the user with admin role
+    await serverClient.upsertUser({
+      id: userId,
+      role: 'admin',
+    });
+
+    // Generate token for the admin user
+    const token = serverClient.createToken(userId);
+
+    return NextResponse.json({ token });
   } catch (error) {
-    console.error('Error generating token:', error)
-    return Response.json({ error: 'Could not generate token' }, { status: 500 })
+    console.error('Error generating token:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate token' },
+      { status: 500 }
+    );
   }
 }
