@@ -50,10 +50,18 @@ export default function UploadForm() {
     formData.append('file', file);
     
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minute timeout
+
       const response = await fetch('/api/process', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
+        // Prevent automatic timeout
+        keepalive: true,
       });
+
+      clearTimeout(timeoutId);
 
       // Log the raw response for debugging
       console.log('Raw response:', response);
