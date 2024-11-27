@@ -1,6 +1,6 @@
 // app/components/UploadForm.jsx
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
@@ -8,7 +8,25 @@ const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB in bytes
 
 export default function UploadForm() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(0);
+  const loadingMessages = [
+    "Reading your PDF... 📚",
+    "Processing the contents... 🤔",
+    "Teaching AI about your document... 🧠",
+    "Almost there... ⚡",
+    "Making final preparations... 🎯"
+  ];
   const router = useRouter();
+
+  useEffect(() => {
+    let interval;
+    if (isProcessing) {
+      interval = setInterval(() => {
+        setLoadingMessage((prev) => (prev + 1) % loadingMessages.length);
+      }, 30000);
+    }
+    return () => clearInterval(interval);
+  }, [isProcessing]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -38,12 +56,11 @@ export default function UploadForm() {
       });
 
       // Log the raw response for debugging
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
+      console.log('Raw response:', response);
 
       let data;
       try {
-        data = JSON.parse(responseText);
+        data = await response.json();
       } catch (parseError) {
         console.error('Response parsing error:', parseError);
         toast.error('Server returned an invalid response');
@@ -94,8 +111,8 @@ export default function UploadForm() {
         {isProcessing && (
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            <p className="mt-2 text-sm text-gray-600">
-              Processing your PDF... This may take a few minutes.
+            <p className="mt-2 text-sm text-gray-600 animate-fade-in">
+              {loadingMessages[loadingMessage]}
             </p>
           </div>
         )}

@@ -27,30 +27,46 @@ export async function POST(req) {
       process.env.PINECONE_API_KEY,
       process.env.PINECONE_INDEX
     );
-
+    console.log('message', message)
+    console.log('pdfId', channelId)
     // Query similar content
     const similarContent = await embedder.querySimilar(
-      message,
-      3,
-      { pdfId } // Filter by this PDF's ID
-    );
-
+        message,
+        3,
+        null, // We don't need the filter anymore since we're using namespaces
+        channelId  // Use pdfId as the namespace
+      );
+    console.log('similarContent', similarContent)
     // Construct context from relevant passages
     const context = similarContent
       .map(match => match.metadata.text)
       .join('\n');
 
+    console.log('context', context)
+
     // Generate response using OpenAI
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-2024-11-20",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that answers questions about a document. Use the provided context to answer questions accurately. If you're unsure, say so."
+          content: `You are an AI that embodies the knowledge and personality of the book being discussed. Respond as if you are the book itself sharing your knowledge.
+    
+    Key behaviors:
+    - Draw exclusively from the provided context when answering
+    - Maintain the book's tone, style and terminology
+    - Express uncertainty when information isn't in the context
+    - Use direct quotes when relevant, citing page numbers if available
+    - Break complex topics into digestible explanations
+    - If asked about topics outside the book's scope, explain that this wasn't covered
+    
+    Important: Base all responses solely on the provided context. Do not introduce external knowledge even if related.
+    
+    Format responses conversationally, as if the book itself is explaining its contents to the reader.`
         },
         ...conversationHistory,
         {
-          role: "user",
+          role: "user", 
           content: `Context: ${context}\n\nQuestion: ${message}`
         }
       ]

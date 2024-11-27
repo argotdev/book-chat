@@ -35,7 +35,8 @@ export async function POST(req) {
     const buffer = await file.arrayBuffer();
     const pdfId = randomUUID();
     const timestamp = Date.now();
-    const cleanFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const nameWithoutExtension = file.name.replace(/\.pdf$/i, '');
+    const cleanFileName = `${timestamp}-${nameWithoutExtension.replace(/[^a-zA-Z0-9-]/g, '_')}`;
 
     try {
       console.log('Initializing embedding system...');
@@ -68,7 +69,7 @@ export async function POST(req) {
         process.env.STREAM_API_SECRET
       );
 
-      const channelId = `pdf-${pdfId}`;
+      const channelId = cleanFileName;
       
       // Create the channel
       const channel = serverClient.channel('messaging', channelId, {
@@ -84,7 +85,8 @@ export async function POST(req) {
 
       return NextResponse.json({
         success: true,
-        channelId
+        channelId,
+        cleanFileName
       });
 
     } catch (processingError) {

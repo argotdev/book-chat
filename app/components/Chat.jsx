@@ -18,6 +18,7 @@ const chatClient = StreamChat.getInstance(process.env.NEXT_PUBLIC_STREAM_API_KEY
 const USER_ID = 'user_id';
 
 export default function ChatComponent({ channelId }) {
+    console.log('channelId', channelId)
   const [channel, setChannel] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,11 +53,15 @@ export default function ChatComponent({ channelId }) {
         // Watch channel for updates
         await channel.watch();
 
-        // Add system message to show chat is ready
-        await channel.sendMessage({
-          text: "You can now start chatting with your PDF document. Ask any questions about its content!",
-          user_id: 'system',
-        });
+        // Check if channel is empty before sending welcome message
+        const state = await channel.query();
+        if (state.messages.length === 0) {
+          await channel.sendMessage({
+            id: `welcome-${channelId}`,
+            text: "You can now start chatting with your PDF document. Ask any questions about its content!",
+            user_id: 'system',
+          });
+        }
 
         setChannel(channel);
       } catch (error) {
@@ -112,7 +117,7 @@ export default function ChatComponent({ channelId }) {
         body: JSON.stringify({
           message: message.text,
           userId: USER_ID,
-          channelId: channel.id,
+          channelId: channelId,
           conversationHistory
         })
       });
